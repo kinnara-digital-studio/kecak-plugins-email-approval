@@ -1,0 +1,28 @@
+[
+  {
+    title : "@@emailApproval.title@@",
+    properties :
+    [
+      {
+        name : 'activities',
+        label : '@@emailApproval.activities@@',
+        type : 'textfield',
+        required : 'true'
+      },
+      {
+        name : 'subjectPattern',
+        label : '@@emailApproval.subjectPattern@@',
+        type : 'textfield',
+        regex_validation : '\{processId\}',
+        validation_message : '@@emailApproval.subjectPatternInvalid@@',
+        required : 'true'
+      },
+      {
+        name : 'bodyPattern',
+        label : '@@emailApproval.bodyPattern@@',
+        type : 'textarea',
+        required : 'true'
+      }
+    ]
+  }
+]
