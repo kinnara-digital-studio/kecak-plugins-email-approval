@@ -11,10 +11,15 @@ import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.StringUtil;
+import org.joget.plugin.base.Plugin;
+import org.joget.plugin.base.PluginManager;
+import org.joget.workflow.model.WorkflowActivity;
 import org.joget.workflow.model.WorkflowAssignment;
 import org.joget.workflow.model.WorkflowProcessLink;
 import org.joget.workflow.model.dao.WorkflowProcessLinkDao;
 import org.joget.workflow.model.service.WorkflowManager;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.context.ApplicationContext;
 
 import javax.annotation.Nonnull;
@@ -196,6 +201,30 @@ public class EmailApproval extends DefaultEmailProcessorPlugin {
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClassName(), "/properties/emailApproval.json", null, false, "/messages/emailApproval");
+        ApplicationContext applicationContext = AppUtil.getApplicationContext();
+        AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+        WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
+        JSONObject activitiesProperty = new JSONObject();
+        try {
+            activitiesProperty.put("name", "activities");
+            activitiesProperty.put("label", "@@emailApproval.activities@@");
+            activitiesProperty.put("required", "true");
+            if(appDefinition != null && isClassInstalled("com.kinnara.kecakplugins.workflowcomponentoptionsbinder.ActivityOptionsBinder")) {
+                String appId = appDefinition.getAppId();
+                String appVersion = appDefinition.getVersion().toString();
+                activitiesProperty.put("type", "multiselect");
+                activitiesProperty.put("options_ajax","[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/com.kinnara.kecakplugins.workflowcomponentoptionsbinder.ActivityOptionsBinder/service?appId="+appId + "&appVersion=" + appVersion + "&type=" + WorkflowActivity.TYPE_NORMAL);
+            } else {
+                activitiesProperty.put("type", "textfield");
+            }
+        } catch (JSONException ignored) { }
+
+        return AppUtil.readPluginResource(getClassName(), "/properties/emailApproval.json", new String[] {activitiesProperty.toString().replaceAll("\"", "'")}, false, "/messages/emailApproval");
+    }
+
+    private boolean isClassInstalled(String className) {
+        PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+        Plugin plugin = pluginManager.getPlugin(className);
+        return plugin != null;
     }
 }

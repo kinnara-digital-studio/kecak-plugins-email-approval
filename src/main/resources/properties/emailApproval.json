@@ -3,12 +3,7 @@
     title : "@@emailApproval.title@@",
     properties :
     [
-      {
-        name : 'activities',
-        label : '@@emailApproval.activities@@',
-        type : 'textfield',
-        required : 'true'
-      },
+      %s,
       {
         name : 'subjectPattern',
         label : '@@emailApproval.subjectPattern@@',
