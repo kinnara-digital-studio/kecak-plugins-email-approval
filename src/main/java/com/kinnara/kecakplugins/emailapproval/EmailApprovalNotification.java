@@ -152,14 +152,17 @@ public class EmailApprovalNotification extends EmailTool {
         String targetEmail = getPropertyString("from");
         String color;
         switch (type) {
+            case "complete":
+                color = "59AF50";
+                break;
             case "revise":
-                color = "FDD017";
+                color = "F19633";
                 break;
             case "reject":
-                color = "FD0000";
+                color = "D3382F";
                 break;
             default:
-                color = "4CC417";
+                color = "2A61FB";
         }
 
         String html =
