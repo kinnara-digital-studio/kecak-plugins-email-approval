@@ -1,0 +1,21 @@
+[
+  {
+    title : "@@emailApproval.title@@",
+    properties :
+    [
+      %s,
+      {
+        name : 'statusVariable',
+        label : '@@emailApproval.statusVariable@@',
+        type : 'textfield',
+        required : 'true',
+        value : 'status'
+      },
+      {
+        name : 'bodyPattern',
+        label : '@@emailApproval.bodyPattern@@',
+        type : 'textarea'
+      }
+    ]
+  }
+]

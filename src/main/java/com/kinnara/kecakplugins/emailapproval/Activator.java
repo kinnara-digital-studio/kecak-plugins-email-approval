@@ -14,7 +14,9 @@ public class Activator implements BundleActivator {
         registrationList = new ArrayList<ServiceRegistration>();
 
         //Register plugin here
-        registrationList.add(context.registerService(EmailApproval.class.getName(), new EmailApproval(), null));
+        registrationList.add(context.registerService(EmailApprovalProcessor.class.getName(), new EmailApprovalProcessor(), null));
+        registrationList.add(context.registerService(EmailApprovalNotification.class.getName(), new EmailApprovalNotification(), null));
+        registrationList.add(context.registerService(EmailReader.class.getName(), new EmailReader(), null));
     }
 
     public void stop(BundleContext context) {

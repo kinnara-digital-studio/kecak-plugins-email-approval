@@ -1,7 +1,6 @@
 package com.kinnara.kecakplugins.emailapproval;
 
 import org.joget.apps.app.model.AppDefinition;
-import org.joget.apps.app.model.DefaultEmailProcessorPlugin;
 import org.joget.apps.app.model.PackageActivityForm;
 import org.joget.apps.app.service.AppService;
 import org.joget.apps.app.service.AppUtil;
@@ -20,6 +19,7 @@ import org.joget.workflow.model.dao.WorkflowProcessLinkDao;
 import org.joget.workflow.model.service.WorkflowManager;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.kecak.apps.app.model.DefaultEmailProcessorPlugin;
 import org.springframework.context.ApplicationContext;
 
 import javax.annotation.Nonnull;
@@ -28,32 +28,45 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-public class EmailApproval extends DefaultEmailProcessorPlugin {
+public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
     @Override
     public void parse(String from, String subject, String body, Map<String, Object> properties) {
         LogUtil.info(getClassName(), "Parsing email from ["+from+"] subject ["+subject+"] body ["+body+"]");
 
-        String subjectPattern = getPropertyString("subjectPattern");
-        Matcher matcher = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}").matcher(subjectPattern);
-        String subjectRegex = createRegex(subjectPattern);
-        Pattern pattern2 = Pattern.compile("^" + subjectRegex + "$");
-        Matcher matcher2 = pattern2.matcher(subject);
+//        String propSubjectPattern = getPropertyString("subjectPattern");
+        String propSubjectPattern = "[{processId}][{var_" +getPropertyString("statusVariable")+"}]";
+        Matcher templateSubjectMatcher = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}").matcher(propSubjectPattern);
+        String templateSubjectRegex = createRegex(propSubjectPattern);
+        Pattern templateSubjectPattern = Pattern.compile("^" + templateSubjectRegex + "$");
+        Matcher contentSubjectMatcher = templateSubjectPattern.matcher(subject);
+
+        Map<String, String> variables = new HashMap<>();
+        Map<String, String> fields = new HashMap<>();
 
         String processId = null;
-        while (matcher2.find()) {
+        while (contentSubjectMatcher.find()) {
             int count = 1;
-            while (matcher.find()) {
-                String key = matcher.group(1);
-                String value = matcher2.group(count);
+            while (templateSubjectMatcher.find()) {
+                String key = templateSubjectMatcher.group(1);
+                String value = contentSubjectMatcher.group(count);
                 if ("processId".equals(key)) {
-                    processId = value;
+                    processId = value.trim();
+                } else if (key.startsWith("var_")) {
+                    key = key.replaceAll("var_", "");
+                    variables.put(key, value.trim());
+                } else if (key.startsWith("form_")) {
+                    key = key.replaceAll("form_", "");
+                    if(value == null || value.trim().equals("")){
+                        value = "-";
+                    }
+                    fields.put(key, value);
                 }
                 count++;
             }
         }
 
         if (processId != null) {
-            parseEmailContent(processId, body.toString());
+            parseEmailContent(processId, body.toString(), variables, fields);
         } else {
             LogUtil.info(getClass().getName(), "Empty process ID");
         }
@@ -61,7 +74,7 @@ public class EmailApproval extends DefaultEmailProcessorPlugin {
 
 
     @SuppressWarnings("unchecked")
-    private void parseEmailContent(String processId, String emailContent) {
+    private void parseEmailContent(String processId, String emailContent, @Nonnull Map<String, String> variables, @Nonnull Map<String, String> fields) {
         ApplicationContext applicationContext = AppUtil.getApplicationContext();
         WorkflowProcessLinkDao workflowProcessLinkDao = (WorkflowProcessLinkDao) applicationContext.getBean("workflowProcessLinkDao");
         WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
@@ -95,9 +108,6 @@ public class EmailApproval extends DefaultEmailProcessorPlugin {
         Pattern pattern2 = Pattern.compile("^" + patternRegex + "$");
         Matcher matcher2 = pattern2.matcher(content);
 
-        Map<String, String> variables = new HashMap<>();
-        Map<String, String> fields = new HashMap<>();
-
         while (matcher2.find()) {
             int count = 1;
             while (matcher.find()) {
@@ -105,11 +115,9 @@ public class EmailApproval extends DefaultEmailProcessorPlugin {
                 String value = matcher2.group(count);
                 if (key.startsWith("var_")) {
                     key = key.replaceAll("var_", "");
-                    LogUtil.info(this.getClass().getName(), "[Var] "+key);
                     variables.put(key, value.trim());
                 } else if (key.startsWith("form_")) {
                     key = key.replaceAll("form_", "");
-                    LogUtil.info(this.getClass().getName(), "[Form] "+key+" ,[VALUE] "+value);
                     if(value == null || value.trim().equals("")){
                         value = "-";
                     }
@@ -150,7 +158,7 @@ public class EmailApproval extends DefaultEmailProcessorPlugin {
 
     private String createRegex(String raw) {
         String result = escapeString(raw, null);
-        result = result.replaceAll("\\\\\\{unuse\\\\\\}", "__([\\\\s\\\\S]*)").replaceAll("\\\\\\{[a-zA-Z0-9_]+\\\\\\}", "(.*?)");
+        result = result.replaceAll("\\\\\\{unuse\\\\}", "__([\\\\s\\\\S]*)").replaceAll("\\\\\\{[a-zA-Z0-9_]+\\\\}", "(.*?)");
         if (result.startsWith("__")) {
             result = result.substring(2);
         }
@@ -176,7 +184,7 @@ public class EmailApproval extends DefaultEmailProcessorPlugin {
 
     @Override
     public String getName() {
-        return "Email Approval";
+        return "Email Approval Processor";
     }
 
     @Override
@@ -219,7 +227,7 @@ public class EmailApproval extends DefaultEmailProcessorPlugin {
             }
         } catch (JSONException ignored) { }
 
-        return AppUtil.readPluginResource(getClassName(), "/properties/emailApproval.json", new String[] {activitiesProperty.toString().replaceAll("\"", "'")}, false, "/messages/emailApproval");
+        return AppUtil.readPluginResource(getClassName(), "/properties/emailApprovalProcessor.json", new String[] {activitiesProperty.toString().replaceAll("\"", "'")}, false, "/messages/emailApprovalProcessor");
     }
 
     private boolean isClassInstalled(String className) {

@@ -1,0 +1,45 @@
+[
+  {
+    "title": "@@emailApprovalNotification.action@@",
+    "properties" : [
+      {
+        "name" : "action",
+        "label" : "@@emailApprovalNotification.action@@",
+        "type" : "grid",
+        "columns" : [
+          {
+            "key" : "value",
+            "label" : "@@emailApprovalNotification.value@@"
+          },
+          {
+            "key" : "label",
+            "label" : "@@emailApprovalNotification.label@@",
+            "required" : "true"
+          },
+          {
+            "key" : "type",
+            "label" : "@@emailApprovalNotification.type@@",
+            "options" : [
+              {
+                "value" : "complete",
+                "label" : "Complete"
+              },
+              {
+                "value" : "revise",
+                "label" : "Revise"
+              },
+              {
+                "value" : "reject",
+                "label" : "Reject"
+              },
+              {
+                "value" : "common",
+                "label" : "Common"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
