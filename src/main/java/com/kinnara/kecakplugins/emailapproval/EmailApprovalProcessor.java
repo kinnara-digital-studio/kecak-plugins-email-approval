@@ -2,6 +2,7 @@ package com.kinnara.kecakplugins.emailapproval;
 
 import com.kinnara.kecakplugins.emailapproval.optionsbinder.ActivityOptionsBinder;
 import com.kinnara.kecakplugins.emailapproval.optionsbinder.WorkflowVariableOptionsBinder;
+import org.enhydra.shark.api.common.SharkConstants;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.PackageActivityForm;
 import org.joget.apps.app.service.AppService;
@@ -12,7 +13,9 @@ import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.StringUtil;
+import org.joget.workflow.model.WorkflowActivity;
 import org.joget.workflow.model.WorkflowAssignment;
+import org.joget.workflow.model.WorkflowProcess;
 import org.joget.workflow.model.WorkflowProcessLink;
 import org.joget.workflow.model.dao.WorkflowProcessLinkDao;
 import org.joget.workflow.model.service.WorkflowManager;
@@ -20,15 +23,17 @@ import org.kecak.apps.app.model.DefaultEmailProcessorPlugin;
 import org.springframework.context.ApplicationContext;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
     @Override
     public void parse(String from, String subject, String body, Map<String, Object> properties) {
-        String propSubjectPattern = "[{processId}][{var_" +getPropertyString("statusVariable")+"}]";
+        String propSubjectPattern = "[{processId}][{var_" + getStatusVariable() + "}]";
         Matcher templateSubjectMatcher = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}").matcher(propSubjectPattern);
         String templateSubjectRegex = createRegex(propSubjectPattern);
         Pattern templateSubjectPattern = Pattern.compile("^" + templateSubjectRegex + "$");
@@ -77,23 +82,14 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
         content = content.replaceAll("\\_\\_", " ");
         content = StringUtil.decodeURL(content);
 
-        WorkflowAssignment workflowAssignment = Optional.ofNullable(workflowProcessLinkDao.getLinks(processId))
-                .map(Collection::stream)
-                .orElse(Stream.empty())
-                .map(WorkflowProcessLink::getProcessId)
-                .map(workflowManager::getAssignmentByProcess)
-                .filter(Objects::nonNull)
-                .filter(assignment -> Arrays.stream(getPropertyString("activities").split(";")).anyMatch(s -> assignment.getActivityDefId().equals(s)))
-                .peek(assignment -> LogUtil.info(getClassName(), "Process ID [" + assignment.getProcessId() + "] assignment ID ["+assignment.getActivityId()+"]"))
-                .findFirst()
-                .orElse(null);
+        WorkflowAssignment workflowAssignment = getActivityAssignment(processId);
 
         if (workflowAssignment == null) {
             LogUtil.warn(this.getClass().getName(), "Assignment for process ["+processId+"] is null");
             return;
         }
 
-        String emailContentPattern = getPropertyString("bodyPattern").replaceAll("\\r?\\n", " ");
+        String emailContentPattern = getBodyPattern();
         String patternRegex = createRegex(emailContentPattern);
         Pattern pattern = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}");
         Matcher matcher = pattern.matcher(emailContentPattern);
@@ -123,7 +119,13 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
         completeActivity(workflowAssignment, fields, variables);
     }
 
-    @SuppressWarnings({"deprecation", "unchecked"})
+    /**
+     * Complete assignment
+     *
+     * @param assignment
+     * @param fields
+     * @param variables
+     */
     private void completeActivity(WorkflowAssignment assignment, @Nonnull final Map<String, String> fields, @Nonnull final Map<String, String> variables) {
         AppService appService = (AppService) AppUtil.getApplicationContext().getBean("appService");
         AppDefinition appDefinition = appService.getAppDefinitionForWorkflowActivity(assignment.getActivityId());
@@ -132,6 +134,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
         final FormData formData = new FormData();
         PackageActivityForm activityForm = appService.viewAssignmentForm(appDefinition, assignment, formData, null, "");
         Form form = activityForm.getForm();
+
         for (Map.Entry<String, String> entry : fields.entrySet()) {
             Element element = FormUtil.findElement(entry.getKey(), form, formData, true);
             if(element != null) {
@@ -173,7 +176,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
 
     @Override
     public String getName() {
-        return "Email Approval Processor";
+        return getClass().getName();
     }
 
     @Override
@@ -188,7 +191,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
 
     @Override
     public String getLabel() {
-        return getName();
+        return "Email Approval Processor";
     }
 
     @Override
@@ -203,5 +206,65 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
                 WorkflowVariableOptionsBinder.class.getName()
         };
         return AppUtil.readPluginResource(getClassName(), "/properties/emailApprovalProcessor.json", args, false, "/messages/emailApprovalProcessor");
+    }
+
+    /**
+     * Get activity assignment based on processId / primaryKey
+     * The method also check for linked process from table wf_process_link
+     *
+     * @param processId processId or primaryKey
+     * @return
+     */
+    @Nullable
+    private WorkflowAssignment getActivityAssignment(String processId) {
+        ApplicationContext applicationContext = AppUtil.getApplicationContext();
+        WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
+        WorkflowProcessLinkDao workflowProcessLinkDao = (WorkflowProcessLinkDao) applicationContext.getBean("workflowProcessLinkDao");
+        return Optional.ofNullable(workflowProcessLinkDao.getLinks(processId))
+                .map(Collection::stream)
+                .orElse(Stream.empty())
+                .map(WorkflowProcessLink::getProcessId)
+                .map(workflowManager::getAssignmentByProcess)
+                .filter(Objects::nonNull)
+                .filter(assignment -> getActivities().contains(assignment.getActivityDefId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Get property "activities"
+     *
+     * @return
+     */
+    @Nonnull
+    private Set<String> getActivities() {
+        return Optional.ofNullable(getPropertyString("activities"))
+                .map(s -> s.split(";"))
+                .map(Arrays::stream)
+                .orElseGet(Stream::empty)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Get property "statusVariable"
+     *
+     * @return
+     */
+    @Nonnull
+    private String getStatusVariable() {
+        return String.valueOf(getPropertyString("statusVariable"));
+    }
+
+    /**
+     * Get property "bodyPattern"
+     *
+     * @return
+     */
+    @Nonnull
+    private String getBodyPattern() {
+        return Optional.ofNullable(getPropertyString("bodyPattern"))
+                .map(s -> s.replaceAll("\\r?\\n", " "))
+                .orElse("");
     }
 }
