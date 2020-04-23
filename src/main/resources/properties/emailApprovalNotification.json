@@ -5,6 +5,7 @@
       {
         "name" : "action",
         "label" : "@@emailApprovalNotification.action@@",
+        "description" : "@@emailApprovalNotification.action.desc@@",
         "type" : "grid",
         "columns" : [
           {

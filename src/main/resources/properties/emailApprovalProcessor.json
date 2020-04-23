@@ -1,20 +1,28 @@
 [
   {
-    title : "@@emailApproval.title@@",
-    properties :
+    "title" : "@@emailApproval.title@@",
+    "properties" :
     [
-      %s,
       {
-        name : 'statusVariable',
-        label : '@@emailApproval.statusVariable@@',
-        type : 'textfield',
-        required : 'true',
-        value : 'status'
+        "name" : "activities",
+        "label" : "@@emailApproval.activities@@",
+        "type" : "multiselect",
+        "options_ajax" : "[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/%s/service",
+        "required" : "true"
       },
       {
-        name : 'bodyPattern',
-        label : '@@emailApproval.bodyPattern@@',
-        type : 'textarea'
+        "name" : "statusVariable",
+        "label" : "@@emailApproval.statusVariable@@",
+        "description" : "@@emailApproval.statusVariable.desc@@",
+        "type" : "selectbox",
+        "value" : "status",
+        "options_ajax" : "[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/%s/service",
+        "required" : "true"
+      },
+      {
+        "name" : "bodyPattern",
+        "label" : "@@emailApproval.bodyPattern@@",
+        "type" : "textarea"
       }
     ]
   }

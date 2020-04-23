@@ -1,5 +1,7 @@
 package com.kinnara.kecakplugins.emailapproval;
 
+import com.kinnara.kecakplugins.emailapproval.optionsbinder.ActivityOptionsBinder;
+import com.kinnara.kecakplugins.emailapproval.optionsbinder.WorkflowVariableOptionsBinder;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.PackageActivityForm;
 import org.joget.apps.app.service.AppService;
@@ -10,15 +12,10 @@ import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.StringUtil;
-import org.joget.plugin.base.Plugin;
-import org.joget.plugin.base.PluginManager;
-import org.joget.workflow.model.WorkflowActivity;
 import org.joget.workflow.model.WorkflowAssignment;
 import org.joget.workflow.model.WorkflowProcessLink;
 import org.joget.workflow.model.dao.WorkflowProcessLinkDao;
 import org.joget.workflow.model.service.WorkflowManager;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.kecak.apps.app.model.DefaultEmailProcessorPlugin;
 import org.springframework.context.ApplicationContext;
 
@@ -31,9 +28,6 @@ import java.util.stream.Stream;
 public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
     @Override
     public void parse(String from, String subject, String body, Map<String, Object> properties) {
-        LogUtil.info(getClassName(), "Parsing email from ["+from+"] subject ["+subject+"] body ["+body+"]");
-
-//        String propSubjectPattern = getPropertyString("subjectPattern");
         String propSubjectPattern = "[{processId}][{var_" +getPropertyString("statusVariable")+"}]";
         Matcher templateSubjectMatcher = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}").matcher(propSubjectPattern);
         String templateSubjectRegex = createRegex(propSubjectPattern);
@@ -66,9 +60,9 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
         }
 
         if (processId != null) {
-            parseEmailContent(processId, body.toString(), variables, fields);
+            parseEmailContent(processId, body, variables, fields);
         } else {
-            LogUtil.info(getClass().getName(), "Empty process ID");
+            LogUtil.warn(getClass().getName(), "Empty process ID");
         }
     }
 
@@ -95,13 +89,12 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
                 .orElse(null);
 
         if (workflowAssignment == null) {
-            LogUtil.info(this.getClass().getName(), "Assignment for process ["+processId+"] is null");
+            LogUtil.warn(this.getClass().getName(), "Assignment for process ["+processId+"] is null");
             return;
         }
 
         String emailContentPattern = getPropertyString("bodyPattern").replaceAll("\\r?\\n", " ");
         String patternRegex = createRegex(emailContentPattern);
-        LogUtil.info(this.getClass().getName(), "Content REGEX [" + patternRegex + "]");
         Pattern pattern = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}");
         Matcher matcher = pattern.matcher(emailContentPattern);
 
@@ -150,10 +143,6 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
         FormData resultFormData = appService.completeAssignmentForm(appDefinition.getAppId(), appDefinition.getVersion().toString(), assignment.getActivityId(), formData, variables);
         resultFormData.getFormErrors().forEach((key, value) ->
                 LogUtil.warn(getClassName(), "Error submitting form [" + form.getPropertyString(FormUtil.PROPERTY_ID) + "] field [" + key + "] message [" + value + "]"));
-
-//        WorkflowAssignment nextAssignment = workflowManager.getAssignmentByProcess(resultFormData.getProcessId());
-//	                    sendAutoReply(sender, subject);
-//	                addActivityLog(sender, processId, activityId, subject, message, variables, formData.getRequestParams());
     }
 
     private String createRegex(String raw) {
@@ -209,30 +198,10 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
 
     @Override
     public String getPropertyOptions() {
-        ApplicationContext applicationContext = AppUtil.getApplicationContext();
-        AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
-        WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
-        JSONObject activitiesProperty = new JSONObject();
-        try {
-            activitiesProperty.put("name", "activities");
-            activitiesProperty.put("label", "@@emailApproval.activities@@");
-            activitiesProperty.put("required", "true");
-            if(appDefinition != null && isClassInstalled("com.kinnara.kecakplugins.workflowcomponentoptionsbinder.ActivityOptionsBinder")) {
-                String appId = appDefinition.getAppId();
-                String appVersion = appDefinition.getVersion().toString();
-                activitiesProperty.put("type", "multiselect");
-                activitiesProperty.put("options_ajax","[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/com.kinnara.kecakplugins.workflowcomponentoptionsbinder.ActivityOptionsBinder/service?appId="+appId + "&appVersion=" + appVersion + "&type=" + WorkflowActivity.TYPE_NORMAL);
-            } else {
-                activitiesProperty.put("type", "textfield");
-            }
-        } catch (JSONException ignored) { }
-
-        return AppUtil.readPluginResource(getClassName(), "/properties/emailApprovalProcessor.json", new String[] {activitiesProperty.toString().replaceAll("\"", "'")}, false, "/messages/emailApprovalProcessor");
-    }
-
-    private boolean isClassInstalled(String className) {
-        PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
-        Plugin plugin = pluginManager.getPlugin(className);
-        return plugin != null;
+        String[] args = new String[] {
+                ActivityOptionsBinder.class.getName(),
+                WorkflowVariableOptionsBinder.class.getName()
+        };
+        return AppUtil.readPluginResource(getClassName(), "/properties/emailApprovalProcessor.json", args, false, "/messages/emailApprovalProcessor");
     }
 }
