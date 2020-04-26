@@ -2,7 +2,6 @@ package com.kinnara.kecakplugins.emailapproval;
 
 import com.kinnara.kecakplugins.emailapproval.optionsbinder.ActivityOptionsBinder;
 import com.kinnara.kecakplugins.emailapproval.optionsbinder.WorkflowVariableOptionsBinder;
-import org.enhydra.shark.api.common.SharkConstants;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.PackageActivityForm;
 import org.joget.apps.app.service.AppService;
@@ -13,9 +12,7 @@ import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.StringUtil;
-import org.joget.workflow.model.WorkflowActivity;
 import org.joget.workflow.model.WorkflowAssignment;
-import org.joget.workflow.model.WorkflowProcess;
 import org.joget.workflow.model.WorkflowProcessLink;
 import org.joget.workflow.model.dao.WorkflowProcessLinkDao;
 import org.joget.workflow.model.service.WorkflowManager;

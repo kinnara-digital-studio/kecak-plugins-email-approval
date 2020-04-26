@@ -1,35 +1,14 @@
 package com.kinnara.kecakplugins.emailapproval;
 
-import org.apache.commons.mail.EmailAttachment;
-import org.apache.commons.mail.EmailException;
-import org.apache.commons.mail.HtmlEmail;
 import org.joget.apps.app.lib.EmailTool;
-import org.joget.apps.app.model.AppDefinition;
-import org.joget.apps.app.service.AppService;
 import org.joget.apps.app.service.AppUtil;
-import org.joget.apps.form.model.FormData;
-import org.joget.apps.form.service.FileUtil;
-import org.joget.commons.util.*;
-import org.joget.plugin.base.PluginException;
-import org.joget.plugin.base.PluginManager;
-import org.joget.workflow.model.WorkflowAssignment;
-import org.joget.workflow.util.WorkflowUtil;
+import org.joget.commons.util.LogUtil;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.springframework.beans.BeansException;
 
-import javax.activation.FileDataSource;
-import javax.mail.internet.MimeUtility;
-import javax.sql.DataSource;
-import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
