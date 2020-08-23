@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
+public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implements Unclutter {
     @Override
     public void parse(String from, String subject, String body, Map<String, Object> properties) {
         String propSubjectPattern = "[{processId}][{var_" + getStatusVariable() + "}]";
@@ -71,16 +71,11 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
 
     @SuppressWarnings("unchecked")
     private void parseEmailContent(String processId, String emailContent, @Nonnull Map<String, String> variables, @Nonnull Map<String, String> fields) {
-        ApplicationContext applicationContext = AppUtil.getApplicationContext();
-        WorkflowProcessLinkDao workflowProcessLinkDao = (WorkflowProcessLinkDao) applicationContext.getBean("workflowProcessLinkDao");
-        WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
-
         String content = emailContent.replaceAll("\\r?\\n", " ");
         content = content.replaceAll("\\_\\_", " ");
         content = StringUtil.decodeURL(content);
 
         WorkflowAssignment workflowAssignment = getActivityAssignment(processId);
-
         if (workflowAssignment == null) {
             LogUtil.warn(this.getClass().getName(), "Assignment for process ["+processId+"] is null");
             return;
@@ -129,8 +124,26 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
 
         //if has form data to submit
         final FormData formData = new FormData();
+        formData.setActivityId(assignment.getActivityId());
+        formData.setProcessId(assignment.getProcessId());
+
         PackageActivityForm activityForm = appService.viewAssignmentForm(appDefinition, assignment, formData, null, "");
         Form form = activityForm.getForm();
+
+        // set request parameter for status workflow variable
+        for (Map.Entry<String, String> entry : variables.entrySet()) {
+            if(getStatusVariable().equals(entry.getKey())) {
+                elementStream(form, formData)
+                        .filter(e -> Optional.of("workflowVariable")
+                                .map(e::getPropertyString)
+                                .map(s -> getStatusVariable().equals(s))
+                                .orElse(false))
+                        .forEach(e -> {
+                            String parameterName = FormUtil.getElementParameterName(e);
+                            formData.addRequestParameterValues(parameterName, new String[] {entry.getValue()});
+                        });
+            }
+        }
 
         for (Map.Entry<String, String> entry : fields.entrySet()) {
             Element element = FormUtil.findElement(entry.getKey(), form, formData, true);
@@ -140,7 +153,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
             }
         }
 
-        FormData resultFormData = appService.completeAssignmentForm(appDefinition.getAppId(), appDefinition.getVersion().toString(), assignment.getActivityId(), formData, variables);
+        FormData resultFormData = appService.completeAssignmentForm(form, assignment, formData, variables);
         resultFormData.getFormErrors().forEach((key, value) ->
                 LogUtil.warn(getClassName(), "Error submitting form [" + form.getPropertyString(FormUtil.PROPERTY_ID) + "] field [" + key + "] message [" + value + "]"));
     }
@@ -263,5 +276,24 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin {
         return Optional.ofNullable(getPropertyString("bodyPattern"))
                 .map(s -> s.replaceAll("\\r?\\n", " "))
                 .orElse("");
+    }
+
+    /**
+     * Stream element children
+     *
+     * @param element
+     * @return
+     */
+    @Nonnull
+    private Stream<Element> elementStream(@Nonnull Element element, FormData formData) {
+        if (!element.isAuthorize(formData)) {
+            return Stream.empty();
+        }
+
+        Stream<Element> stream = Stream.of(element);
+        for (Element child : element.getChildren()) {
+            stream = Stream.concat(stream, elementStream(child, formData));
+        }
+        return stream;
     }
 }
