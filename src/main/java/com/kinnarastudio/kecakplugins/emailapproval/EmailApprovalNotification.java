@@ -3,12 +3,14 @@ package com.kinnarastudio.kecakplugins.emailapproval;
 import org.joget.apps.app.lib.EmailTool;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.commons.util.LogUtil;
+import org.joget.plugin.base.PluginManager;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 public class EmailApprovalNotification extends EmailTool {
@@ -24,7 +26,10 @@ public class EmailApprovalNotification extends EmailTool {
 
     @Override
     public String getVersion() {
-        return getClass().getPackage().getImplementationVersion();
+        PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+        ResourceBundle resourceBundle = pluginManager.getPluginMessageBundle(getClassName(), "/messages/BuildNumber");
+        String buildNumber = resourceBundle.getString("buildNumber");
+        return buildNumber;
     }
 
     private String generateButtonCssStyle() {

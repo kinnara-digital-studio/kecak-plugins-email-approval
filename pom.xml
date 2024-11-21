@@ -7,6 +7,12 @@
     <version>3.0.0</version>
     <name>kecak-plugins-email-approval</name>
     <url>http://www.kecak.org</url>
+    <scm>
+        <connection>scm:git:ssh://git@github.com:kinnara-digital-studio/kecak-plugins-email-approval.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:kinnara-digital-studio/kecak-plugins-email-approval.git</developerConnection>
+        <url>ssh://git@github.com:kinnara-digital-studio/kecak-plugins-email-approval.git</url>
+        <tag>HEAD</tag>
+    </scm>
     <build>
         <plugins>
             <plugin>

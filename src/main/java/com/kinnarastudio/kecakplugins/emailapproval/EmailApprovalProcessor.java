@@ -12,6 +12,7 @@ import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.StringUtil;
+import org.joget.plugin.base.PluginManager;
 import org.joget.workflow.model.WorkflowAssignment;
 import org.joget.workflow.model.WorkflowProcessLink;
 import org.joget.workflow.model.dao.WorkflowProcessLinkDao;
@@ -191,7 +192,10 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
 
     @Override
     public String getVersion() {
-        return getClass().getPackage().getImplementationVersion();
+        PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+        ResourceBundle resourceBundle = pluginManager.getPluginMessageBundle(getClassName(), "/messages/BuildNumber");
+        String buildNumber = resourceBundle.getString("buildNumber");
+        return buildNumber;
     }
 
     @Override

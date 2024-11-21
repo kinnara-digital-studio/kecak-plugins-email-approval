@@ -1,9 +1,12 @@
 package com.kinnarastudio.kecakplugins.emailapproval;
 
+import org.joget.apps.app.service.AppUtil;
 import org.joget.commons.util.LogUtil;
+import org.joget.plugin.base.PluginManager;
 import org.kecak.apps.app.model.DefaultEmailProcessorPlugin;
 
 import java.util.Map;
+import java.util.ResourceBundle;
 
 /**
  * @author aristo
@@ -22,7 +25,10 @@ public class EmailReader extends DefaultEmailProcessorPlugin {
 
     @Override
     public String getVersion() {
-        return getClass().getPackage().getImplementationVersion();
+        PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+        ResourceBundle resourceBundle = pluginManager.getPluginMessageBundle(getClassName(), "/messages/BuildNumber");
+        String buildNumber = resourceBundle.getString("buildNumber");
+        return buildNumber;
     }
 
     @Override
