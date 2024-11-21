@@ -1,10 +1,10 @@
-package com.kinnara.kecakplugins.emailapproval;
+package com.kinnarastudio.kecakplugins.emailapproval;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
-import com.kinnara.kecakplugins.emailapproval.optionsbinder.ActivityOptionsBinder;
-import com.kinnara.kecakplugins.emailapproval.optionsbinder.WorkflowVariableOptionsBinder;
+import com.kinnarastudio.kecakplugins.emailapproval.optionsbinder.ActivityOptionsBinder;
+import com.kinnarastudio.kecakplugins.emailapproval.optionsbinder.WorkflowVariableOptionsBinder;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;

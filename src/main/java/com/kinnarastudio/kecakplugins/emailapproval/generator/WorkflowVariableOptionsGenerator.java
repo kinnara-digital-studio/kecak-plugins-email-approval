@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.emailapproval.generator;
+package com.kinnarastudio.kecakplugins.emailapproval.generator;
 
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.PackageDefinition;

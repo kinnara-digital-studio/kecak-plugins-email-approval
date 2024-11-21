@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.emailapproval;
+package com.kinnarastudio.kecakplugins.emailapproval;
 
 import org.joget.apps.app.lib.EmailTool;
 import org.joget.apps.app.service.AppUtil;
@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class EmailApprovalNotification extends EmailTool {
     @Override
@@ -157,9 +156,8 @@ public class EmailApprovalNotification extends EmailTool {
     public Object execute(Map properties) {
         String actions = Optional.ofNullable(getProperty("action"))
                 .filter(o -> o instanceof Object[])
-                .map(o -> (Object[]) o)
-                .map(Arrays::stream)
-                .orElse(Stream.empty())
+                .map(o -> (Object[]) o).stream()
+                .flatMap(Arrays::stream)
                 .filter(o -> o instanceof Map)
                 .map(o -> (Map<String, Object>) o)
                 .map(m -> generateButtonHtml(String.valueOf(m.get("label")), String.valueOf(m.get("value")), String.valueOf(m.get("type"))))

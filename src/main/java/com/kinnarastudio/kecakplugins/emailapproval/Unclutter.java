@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.emailapproval;
+package com.kinnarastudio.kecakplugins.emailapproval;
 
 import org.joget.commons.util.LogUtil;
 import org.json.JSONArray;

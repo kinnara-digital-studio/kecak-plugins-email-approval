@@ -1,7 +1,7 @@
-package com.kinnara.kecakplugins.emailapproval;
+package com.kinnarastudio.kecakplugins.emailapproval;
 
-import com.kinnara.kecakplugins.emailapproval.optionsbinder.ActivityOptionsBinder;
-import com.kinnara.kecakplugins.emailapproval.optionsbinder.WorkflowVariableOptionsBinder;
+import com.kinnarastudio.kecakplugins.emailapproval.optionsbinder.ActivityOptionsBinder;
+import com.kinnarastudio.kecakplugins.emailapproval.optionsbinder.WorkflowVariableOptionsBinder;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.PackageActivityForm;
 import org.joget.apps.app.service.AppService;
