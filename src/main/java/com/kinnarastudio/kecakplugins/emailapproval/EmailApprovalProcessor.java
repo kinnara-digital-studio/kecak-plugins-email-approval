@@ -171,9 +171,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
     @SuppressWarnings({"rawtypes", "unchecked"})
     private String escapeString(String inStr, Map<String, String> replaceMap) {
         if (replaceMap != null) {
-            Iterator it = replaceMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, String> pairs = (Map.Entry<String, String>) it.next();
+            for (Map.Entry<String, String> pairs : replaceMap.entrySet()) {
                 inStr = inStr.replaceAll(pairs.getKey(), escapeRegex(pairs.getValue()));
             }
         }
@@ -235,8 +233,8 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
         WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
         WorkflowProcessLinkDao workflowProcessLinkDao = (WorkflowProcessLinkDao) applicationContext.getBean("workflowProcessLinkDao");
         return Optional.ofNullable(workflowProcessLinkDao.getLinks(processId))
-                .map(Collection::stream)
-                .orElse(Stream.empty())
+                .stream()
+                .flatMap(Collection::stream)
                 .map(WorkflowProcessLink::getProcessId)
                 .map(workflowManager::getAssignmentByProcess)
                 .filter(Objects::nonNull)
@@ -254,8 +252,8 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
     private Set<String> getActivities() {
         return Optional.ofNullable(getPropertyString("activities"))
                 .map(s -> s.split(";"))
-                .map(Arrays::stream)
-                .orElseGet(Stream::empty)
+                .stream()
+                .flatMap(Arrays::stream)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toSet());
     }
@@ -266,7 +264,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
      * @return
      */
     @Nonnull
-    private String getStatusVariable() {
+    protected String getStatusVariable() {
         return String.valueOf(getPropertyString("statusVariable"));
     }
 
@@ -276,7 +274,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
      * @return
      */
     @Nonnull
-    private String getBodyPattern() {
+    protected String getBodyPattern() {
         return Optional.ofNullable(getPropertyString("bodyPattern"))
                 .map(s -> s.replaceAll("\\r?\\n", " "))
                 .orElse("");

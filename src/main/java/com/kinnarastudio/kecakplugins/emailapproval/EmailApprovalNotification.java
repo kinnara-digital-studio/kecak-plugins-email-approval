@@ -1,17 +1,22 @@
 package com.kinnarastudio.kecakplugins.emailapproval;
 
+import com.kinnarastudio.commons.Try;
+import com.kinnarastudio.commons.jsonstream.JSONCollectors;
+import com.kinnarastudio.commons.jsonstream.JSONStream;
 import org.joget.apps.app.lib.EmailTool;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.plugin.base.PluginManager;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class EmailApprovalNotification extends EmailTool {
     @Override
@@ -176,19 +181,16 @@ public class EmailApprovalNotification extends EmailTool {
     @Override
     public String getPropertyOptions() {
         try {
-            // load
-            JSONArray jsonEmailToolProperties = new JSONArray(super.getPropertyOptions());
-            JSONArray jsonEmailApprovalNotificationProperties = new JSONArray(getPluginPropertyOptions());
+            Stream<JSONObject> jsonStreamEmailProperties = JSONStream.of(new JSONArray(super.getPropertyOptions()), Try.onBiFunction(JSONArray::getJSONObject));
+            Stream<JSONObject> jsonStreamNotificationProperties = JSONStream.of(new JSONArray(getPluginPropertyOptions()), Try.onBiFunction(JSONArray::getJSONObject));
 
-            // inject default email properties with additional properties
-            for (int i = 0, size = jsonEmailApprovalNotificationProperties.length(); i < size; i++) {
-                jsonEmailToolProperties.put(jsonEmailApprovalNotificationProperties.getJSONObject(i));
-            }
+            return Stream.concat(jsonStreamEmailProperties, jsonStreamNotificationProperties)
+                    .collect(JSONCollectors.toJSONArray())
+                    .toString();
 
-            return jsonEmailToolProperties.toString();
         } catch (JSONException e) {
             LogUtil.error(getClassName(), e, e.getMessage());
-            return super.getPropertyOptions();
+            return null;
         }
     }
 

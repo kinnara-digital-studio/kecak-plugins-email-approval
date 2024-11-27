@@ -164,6 +164,11 @@
             <artifactId>commons-email</artifactId>
             <version>1.4</version>
         </dependency>
+        <dependency>
+            <groupId>com.kinnarastudio</groupId>
+            <artifactId>kinnara-commons</artifactId>
+            <version>4.2.1</version>
+        </dependency>
         <!-- End change plugin specific dependencies here -->
     </dependencies>
 </project>
