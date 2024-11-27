@@ -38,6 +38,10 @@
                 "label" : "Common"
               }
             ]
+          },
+          {
+            "key" : "message",
+            "label" : "@@emailApprovalNotification.message@@"
           }
         ]
       }

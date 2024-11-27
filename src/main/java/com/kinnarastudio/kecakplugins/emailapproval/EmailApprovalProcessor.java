@@ -14,8 +14,6 @@ import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.StringUtil;
 import org.joget.plugin.base.PluginManager;
 import org.joget.workflow.model.WorkflowAssignment;
-import org.joget.workflow.model.WorkflowProcessLink;
-import org.joget.workflow.model.dao.WorkflowProcessLinkDao;
 import org.joget.workflow.model.service.WorkflowManager;
 import org.kecak.apps.app.model.DefaultEmailProcessorPlugin;
 import org.springframework.context.ApplicationContext;
@@ -30,8 +28,8 @@ import java.util.stream.Stream;
 public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implements Unclutter {
     @Override
     public void parse(String from, String subject, String body, Map<String, Object> properties) {
-        String propSubjectPattern = "[{processId}][{var_" + getStatusVariable() + "}]";
-        Matcher templateSubjectMatcher = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}").matcher(propSubjectPattern);
+        String propSubjectPattern = "[{appId}][{processId}][{var_" + getStatusVariable() + "}]";
+        Matcher templateSubjectMatcher = Pattern.compile("\\{([a-zA-Z0-9_]+)}").matcher(propSubjectPattern);
         String templateSubjectRegex = createRegex(propSubjectPattern);
         Pattern templateSubjectPattern = Pattern.compile("^" + templateSubjectRegex + "$");
         Matcher contentSubjectMatcher = templateSubjectPattern.matcher(subject);
@@ -39,13 +37,16 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
         Map<String, String> variables = new HashMap<>();
         Map<String, String> fields = new HashMap<>();
 
+        String appId = null;
         String processId = null;
         while (contentSubjectMatcher.find()) {
             int count = 1;
             while (templateSubjectMatcher.find()) {
                 String key = templateSubjectMatcher.group(1);
                 String value = contentSubjectMatcher.group(count);
-                if ("processId".equals(key)) {
+                if ("appId".equals(key)) {
+                    appId = value.trim();
+                } else if ("processId".equals(key)) {
                     processId = value.trim();
                 } else if (key.startsWith("var_")) {
                     key = key.replaceAll("var_", "");
@@ -62,7 +63,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
         }
 
         if (processId != null) {
-            parseEmailContent(processId, body, variables, fields);
+            parseEmailContent(appId, processId, body, variables, fields);
         } else {
             LogUtil.warn(getClass().getName(), "Empty process ID");
         }
@@ -70,14 +71,14 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
 
 
     @SuppressWarnings("unchecked")
-    private void parseEmailContent(String processId, String emailContent, @Nonnull Map<String, String> variables, @Nonnull Map<String, String> fields) {
+    private void parseEmailContent(String appId, String processId, String emailContent, @Nonnull Map<String, String> variables, @Nonnull Map<String, String> fields) {
         String content = emailContent.replaceAll("\\r?\\n", " ");
         content = content.replaceAll("\\_\\_", " ");
         content = StringUtil.decodeURL(content);
 
         Optional<WorkflowAssignment> workflowAssignment = getActivityAssignment(processId);
         if (workflowAssignment.isEmpty()) {
-            LogUtil.warn(this.getClass().getName(), "Assignment for process [" + processId + "] is null");
+            LogUtil.warn(this.getClass().getName(), "Assignment for app [" + appId + "] process [" + processId + "] is null");
             return;
         }
 

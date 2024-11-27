@@ -4,6 +4,7 @@ import com.kinnarastudio.commons.Try;
 import com.kinnarastudio.commons.jsonstream.JSONCollectors;
 import com.kinnarastudio.commons.jsonstream.JSONStream;
 import org.joget.apps.app.lib.EmailTool;
+import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.plugin.base.PluginManager;
@@ -136,7 +137,7 @@ public class EmailApprovalNotification extends EmailTool {
     }
 
 
-    private String generateButtonHtml(String label, String value, String type) {
+    private String generateButtonHtml(String label, String value, String type, String message) {
         String targetEmail = getPropertyString("from");
         String color;
         switch (type) {
@@ -153,12 +154,13 @@ public class EmailApprovalNotification extends EmailTool {
                 color = "2A61FB";
         }
 
+        AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
         String html =
                 " <td>" +
-                "   <a href=\"#\" style=\"text-decoration:none\">" +
-                "     <p style=\"background-color:#" + color + "; text-align:center; padding: 10px 10px 10px 10px; margin: 10px 10px 10px 10px;color: #FFFFFF;   font-family: Merienda, 'Times New Roman', serif, sans-serif; \"><a href=\"mailto:" + targetEmail + "?subject=[#assignment.processId#]["+value+"]\" style=\"color: #FFFFFF;\" data-rel=\"external\">" + label + "</a></p>" +
-                "   </a>" +
-                " </td>";
+                        "   <a href=\"#\" style=\"text-decoration:none\">" +
+                        "     <p style=\"background-color:#" + color + "; text-align:center; padding: 10px 10px 10px 10px; margin: 10px 10px 10px 10px;color: #FFFFFF;   font-family: Merienda, 'Times New Roman', serif, sans-serif; \"><a href=\"mailto:" + targetEmail + "?subject=[" + appDefinition.getAppId() + "][#assignment.processId#][" + value + "]&body=" + message + "\" style=\"color: #FFFFFF;\" data-rel=\"external\">" + label + "</a></p>" +
+                        "   </a>" +
+                        " </td>";
         return html;
     }
 
@@ -170,10 +172,10 @@ public class EmailApprovalNotification extends EmailTool {
                 .flatMap(Arrays::stream)
                 .filter(o -> o instanceof Map)
                 .map(o -> (Map<String, Object>) o)
-                .map(m -> generateButtonHtml(String.valueOf(m.get("label")), String.valueOf(m.get("value")), String.valueOf(m.get("type"))))
+                .map(m -> generateButtonHtml(String.valueOf(m.get("label")), String.valueOf(m.get("value")), String.valueOf(m.get("type")), String.valueOf(m.get("message"))))
                 .collect(Collectors.joining());
 
-        properties.replace("message", properties.get("message") + generateButtonCssStyle() + "<table cellpadding=\"0\" cellspacing=\"0\" align=\"center\" width=\"84%\" style=\"margin-left:12.5%\" class=\"catalog\"><tbody><tr>" +actions + "</tr></tbody></table>");
+        properties.replace("message", properties.get("message") + generateButtonCssStyle() + "<table cellpadding=\"0\" cellspacing=\"0\" align=\"center\" width=\"84%\" style=\"margin-left:12.5%\" class=\"catalog\"><tbody><tr>" + actions + "</tr></tbody></table>");
 
         return super.execute(properties);
     }
