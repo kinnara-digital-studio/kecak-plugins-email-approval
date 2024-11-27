@@ -21,7 +21,6 @@ import org.kecak.apps.app.model.DefaultEmailProcessorPlugin;
 import org.springframework.context.ApplicationContext;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,7 +52,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
                     variables.put(key, value.trim());
                 } else if (key.startsWith("form_")) {
                     key = key.replaceAll("form_", "");
-                    if(value == null || value.trim().equals("")){
+                    if (value == null || value.trim().equals("")) {
                         value = "-";
                     }
                     fields.put(key, value);
@@ -76,9 +75,9 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
         content = content.replaceAll("\\_\\_", " ");
         content = StringUtil.decodeURL(content);
 
-        WorkflowAssignment workflowAssignment = getActivityAssignment(processId);
-        if (workflowAssignment == null) {
-            LogUtil.warn(this.getClass().getName(), "Assignment for process ["+processId+"] is null");
+        Optional<WorkflowAssignment> workflowAssignment = getActivityAssignment(processId);
+        if (workflowAssignment.isEmpty()) {
+            LogUtil.warn(this.getClass().getName(), "Assignment for process [" + processId + "] is null");
             return;
         }
 
@@ -100,7 +99,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
                     variables.put(key, value.trim());
                 } else if (key.startsWith("form_")) {
                     key = key.replaceAll("form_", "");
-                    if(value == null || value.trim().equals("")){
+                    if (value == null || value.trim().equals("")) {
                         value = "-";
                     }
                     fields.put(key, value);
@@ -109,7 +108,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
             }
         }
 
-        completeActivity(workflowAssignment, fields, variables);
+        workflowAssignment.ifPresent(a -> completeActivity(a, fields, variables));
     }
 
     /**
@@ -120,6 +119,8 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
      * @param variables
      */
     private void completeActivity(WorkflowAssignment assignment, @Nonnull final Map<String, String> fields, @Nonnull final Map<String, String> variables) {
+        LogUtil.info(getClassName(), "Completing assignment [" + assignment.getActivityId() + "]");
+
         AppService appService = (AppService) AppUtil.getApplicationContext().getBean("appService");
         AppDefinition appDefinition = appService.getAppDefinitionForWorkflowActivity(assignment.getActivityId());
 
@@ -133,7 +134,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
 
         // set request parameter for status workflow variable
         for (Map.Entry<String, String> entry : variables.entrySet()) {
-            if(getStatusVariable().equals(entry.getKey())) {
+            if (getStatusVariable().equals(entry.getKey())) {
                 elementStream(form, formData)
                         .filter(e -> Optional.of("workflowVariable")
                                 .map(e::getPropertyString)
@@ -141,16 +142,16 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
                                 .orElse(false))
                         .forEach(e -> {
                             String parameterName = FormUtil.getElementParameterName(e);
-                            formData.addRequestParameterValues(parameterName, new String[] {entry.getValue()});
+                            formData.addRequestParameterValues(parameterName, new String[]{entry.getValue()});
                         });
             }
         }
 
         for (Map.Entry<String, String> entry : fields.entrySet()) {
             Element element = FormUtil.findElement(entry.getKey(), form, formData, true);
-            if(element != null) {
+            if (element != null) {
                 String parameterName = FormUtil.getElementParameterName(element);
-                formData.addRequestParameterValues(parameterName, new String[] {entry.getValue()});
+                formData.addRequestParameterValues(parameterName, new String[]{entry.getValue()});
             }
         }
 
@@ -213,7 +214,7 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
 
     @Override
     public String getPropertyOptions() {
-        String[] args = new String[] {
+        String[] args = new String[]{
                 ActivityOptionsBinder.class.getName(),
                 WorkflowVariableOptionsBinder.class.getName()
         };
@@ -227,20 +228,10 @@ public class EmailApprovalProcessor extends DefaultEmailProcessorPlugin implemen
      * @param processId processId or primaryKey
      * @return
      */
-    @Nullable
-    private WorkflowAssignment getActivityAssignment(String processId) {
+    protected Optional<WorkflowAssignment> getActivityAssignment(String processId) {
         ApplicationContext applicationContext = AppUtil.getApplicationContext();
         WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
-        WorkflowProcessLinkDao workflowProcessLinkDao = (WorkflowProcessLinkDao) applicationContext.getBean("workflowProcessLinkDao");
-        return Optional.ofNullable(workflowProcessLinkDao.getLinks(processId))
-                .stream()
-                .flatMap(Collection::stream)
-                .map(WorkflowProcessLink::getProcessId)
-                .map(workflowManager::getAssignmentByProcess)
-                .filter(Objects::nonNull)
-                .filter(assignment -> getActivities().contains(assignment.getActivityDefId()))
-                .findFirst()
-                .orElse(null);
+        return Optional.ofNullable(workflowManager.getAssignmentByProcess(processId));
     }
 
     /**
